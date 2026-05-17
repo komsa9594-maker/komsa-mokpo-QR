@@ -80,7 +80,7 @@ async function fetchScheduleByDate(
 
   try {
     const res = await fetch(url, {
-      next: { revalidate: 1800 }, // 30분 캐시
+      cache: 'no-store', // 캐시 없이 항상 최신 데이터 조회
     });
 
     if (!res.ok) {
