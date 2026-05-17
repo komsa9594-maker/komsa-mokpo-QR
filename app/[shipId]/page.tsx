@@ -91,7 +91,7 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
                ● 실시간 연동 중 
             </span>
             <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
-               방금 업데이트됨
+               {new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())} 업데이트
             </span>
           </div>
           
