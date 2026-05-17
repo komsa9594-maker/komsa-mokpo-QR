@@ -30,7 +30,31 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
     console.error('[선박 페이지] 운항 일정 조회 실패:', e);
   }
 
-  const mainSchedule = schedules?.[0] ?? null;
+  let mainSchedule = schedules?.[0] ?? null;
+  if (schedules && schedules.length > 0) {
+    // 현재 KST 시각 (HHMM)
+    const kstTimeFormatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false });
+    const kstTimeStr = kstTimeFormatter.format(new Date()).replace(':', '');
+    const currentKstTime = parseInt(kstTimeStr, 10);
+
+    // 1순위: 운항중인 항차
+    const inTransit = schedules.find((s: any) => (s.nvg_stts_nm || s.nvg_se_nm || '').includes('운항중'));
+    
+    // 2순위: 현재 시간 이후의 가장 가까운 예정 항차
+    const upcoming = schedules.find((s: any) => {
+      const time = parseInt(s.sail_tm || '0', 10);
+      return time >= currentKstTime && !(s.nvg_stts_nm || s.nvg_se_nm || '').includes('완료');
+    });
+
+    if (inTransit) {
+      mainSchedule = inTransit;
+    } else if (upcoming) {
+      mainSchedule = upcoming;
+    } else {
+      // 다 지났으면 마지막 항차
+      mainSchedule = schedules[schedules.length - 1];
+    }
+  }
   const statusInfo = getStatusInfo(mainSchedule);
 
   // KST 기준 오늘 날짜 (Vercel UTC 서버에서도 정확히 동작)
