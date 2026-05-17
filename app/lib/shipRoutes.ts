@@ -414,14 +414,17 @@ export const shipRouteMap: Record<string, ShipRouteInfo> = {
     ]
   },
   "섬드리비금농협고속페리": {
-    "route": "남강 ➔ 가산",
+    "route": "남강 ➔ 가산 (수치 경유)",
     "ports": [
       "목포",
       "남강",
       "가산",
       "비금도",
       "비금",
-      "Bigeumdo"
+      "Bigeumdo",
+      "수치",
+      "수치도",
+      "Suchido"
     ]
   },
   "퀸메리": {
