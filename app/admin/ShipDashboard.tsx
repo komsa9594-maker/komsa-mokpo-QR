@@ -3,7 +3,7 @@ import styles from './admin.module.css';
 import { 
   Copy, Link as LinkIcon, BarChart2, Edit2, Trash2, Calendar, User, Users, 
   CalendarDays, Settings, Star, ExternalLink, Activity, Target, PlusCircle, 
-  Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle 
+  Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle, Bell
 } from 'lucide-react';
 import { updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, updateCustomLink, addCustomLinkToAllShips, copyLinkToOtherShips } from './actions';
 
@@ -212,6 +212,9 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
             </div>
           </div>
 
+          <div className={styles.sectionHeader} style={{ marginTop: '2rem' }}>
+            <div className={styles.sectionTitle}><Bell size={18} color="#8b5cf6" /> 공지사항 관리</div>
+          </div>
           <div className={styles.linkCard}>
             <div className={styles.linkLeft}>
                <div className={`${styles.linkIconBox} ${styles.purple}`}><CalendarDays size={24} /></div>
