@@ -144,13 +144,15 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
           {schedules && schedules.length > 0 && (() => {
             const renderScheduleItem = (s: any, i: number) => {
               // nvg_stts_nm: 출항전, 운항중, 완료 / nvg_se_nm: 정상, 증선, 비운항, 통제, 대기/지연
-              const statusTxt = s.nvg_stts_nm || s.nvg_se_nm || '정상';
+              const isCanceled = (s.nvg_se_nm || '').match(/통제|결항|비운항|비운|휴항/) || (s.nnavi_rsn_nm || '').match(/휴항/);
+              let statusTxt = isCanceled ? (s.nvg_se_nm === '비운' ? '비운항' : s.nvg_se_nm) : (s.nvg_stts_nm || s.nvg_se_nm || '정상');
+              if (s.nnavi_rsn_nm?.includes('휴항')) statusTxt = '휴항';
               let statusColor = '#10b981'; // 기본: 초록
               let statusBg = '#10b98111';
               if (statusTxt.includes('출항전')) { statusColor = '#f59e0b'; statusBg = '#f59e0b18'; }
               else if (statusTxt.includes('운항중')) { statusColor = '#3b82f6'; statusBg = '#3b82f618'; }
               else if (statusTxt.includes('완료')) { statusColor = '#10b981'; statusBg = '#10b98111'; }
-              else if (statusTxt.includes('통제') || statusTxt.includes('결항') || statusTxt.includes('비운항')) { statusColor = '#ef4444'; statusBg = '#ef444418'; }
+              else if (statusTxt.includes('통제') || statusTxt.includes('결항') || statusTxt.includes('비운') || statusTxt.includes('휴항')) { statusColor = '#ef4444'; statusBg = '#ef444418'; }
               return (
                 <div key={i} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', justifyContent: 'center', marginBottom: '0.6rem' }}>
                   <span style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>🕐 {formatTime(s.sail_tm)}</span>
@@ -257,7 +259,11 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
               const vB = tB.includes('vr');
               if (vA && !vB) return -1;
               if (!vA && vB) return 1;
-              return 0;
+              
+              // 나머지 링크들은 생성 시간 순으로 (오래된 것 먼저, 새로 추가한 것은 맨 아래로)
+              const timeA = new Date(a.createdAt || 0).getTime();
+              const timeB = new Date(b.createdAt || 0).getTime();
+              return timeA - timeB;
             })
             .map((link: any) => {
               let desc = link.description || '여객선 이용을 위한 편리한 부가 서비스입니다.';
