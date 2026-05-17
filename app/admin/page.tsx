@@ -30,6 +30,7 @@ export default async function AdminPage() {
   let config = null;
   let ships: any[] = [];
   let allClickEvents: any[] = [];
+  let announcements: any[] = [];
   let dbError = null;
 
   try {
@@ -42,6 +43,7 @@ export default async function AdminPage() {
       orderBy: { createdAt: 'desc' } 
     });
     allClickEvents = await prisma.clickEvent.findMany();
+    announcements = await prisma.announcement.findMany({ orderBy: { createdAt: 'desc' } });
   } catch (e: any) {
     console.error('DB 로딩 오류:', e);
     dbError = e.message || '데이터베이스 연결에 실패했습니다.';
@@ -80,6 +82,7 @@ export default async function AdminPage() {
         ships={ships} 
         config={config} 
         allClickEvents={allClickEvents} 
+        announcements={announcements}
         urlOrigin={urlOrigin} 
       />
     </div>

@@ -21,6 +21,10 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
   if (!ship) return notFound();
 
   const config = await prisma.systemConfig.findUnique({ where: { id: 'global' } });
+  const announcements = await prisma.announcement.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: 'desc' }
+  });
 
   // KOMSA API로 운항 일정 조회
   let schedules = null;
@@ -86,7 +90,7 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
 
   return (
     <div className={styles.container}>
-      <NoticePopup message={config?.tomorrowWeather} />
+      <NoticePopup message={config?.tomorrowWeather} announcements={announcements} />
       <Tracker shipId={ship.id} />
       
       <header className={styles.header} style={{ 

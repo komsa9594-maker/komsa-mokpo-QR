@@ -139,3 +139,38 @@ export async function updateCustomLink(id: string, title: string, url: string, i
   revalidatePath('/admin');
   revalidatePath('/');
 }
+
+export async function addAnnouncement(title: string, content: string, imageUrl: string | null = null) {
+  await prisma.announcement.create({
+    data: { title, content, imageUrl }
+  });
+  revalidatePath('/admin');
+  revalidatePath('/');
+}
+
+export async function updateAnnouncement(id: string, title: string, content: string, imageUrl: string | null = null) {
+  await prisma.announcement.update({
+    where: { id },
+    data: { title, content, imageUrl }
+  });
+  revalidatePath('/admin');
+  revalidatePath('/');
+}
+
+export async function deleteAnnouncement(id: string) {
+  await prisma.announcement.delete({
+    where: { id }
+  });
+  revalidatePath('/admin');
+  revalidatePath('/');
+}
+
+export async function toggleAnnouncementActive(id: string, isActive: boolean) {
+  await prisma.announcement.update({
+    where: { id },
+    data: { isActive }
+  });
+  revalidatePath('/admin');
+  revalidatePath('/');
+}
+

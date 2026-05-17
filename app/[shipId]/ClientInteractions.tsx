@@ -5,21 +5,37 @@ import React, { useEffect, useState } from 'react';
 import { Anchor, BatteryCharging, BookOpen, Bus, CalendarClock, CheckSquare, ChevronRight, ClipboardCheck, ExternalLink, Glasses, Heart, Info, MapPin, Navigation, Zap } from 'lucide-react';
 import styles from './page.module.css';
 
-export function NoticePopup({ message }: { message?: string | null }) {
+export function NoticePopup({ message, announcements = [] }: { message?: string | null; announcements?: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); // For fullscreen lightbox
 
   useEffect(() => {
     setMounted(true);
-    if (message && message.trim() !== '') {
+    const hasNotices = (announcements && announcements.length > 0) || (message && message.trim() !== '');
+    if (hasNotices) {
       const hideUntil = localStorage.getItem('hide_notice_until');
-      if (!hideUntil || new Date().getTime() > parseInt(hideUntil, 10)) {
+      let newestDate = 0;
+      if (announcements && announcements.length > 0) {
+        newestDate = Math.max(...announcements.map((a: any) => new Date(a.createdAt).getTime()));
+      }
+      
+      const savedHideTime = hideUntil ? parseInt(hideUntil, 10) : 0;
+      const isExpired = new Date().getTime() > savedHideTime;
+      
+      const lastDismissedTime = localStorage.getItem('last_dismissed_time') ? parseInt(localStorage.getItem('last_dismissed_time')!, 10) : 0;
+      const hasNewNotice = newestDate > lastDismissedTime;
+
+      if (isExpired || hasNewNotice) {
         setIsOpen(true);
       }
     }
-  }, [message]);
+  }, [message, announcements]);
 
   const closePopup = (hideForToday: boolean) => {
+    const now = new Date().getTime();
+    localStorage.setItem('last_dismissed_time', now.toString());
+    
     if (hideForToday) {
       const tomorrow = new Date();
       tomorrow.setHours(24, 0, 0, 0);
@@ -30,59 +46,189 @@ export function NoticePopup({ message }: { message?: string | null }) {
 
   if (!mounted || !isOpen) return null;
 
+  // Compile active notices
+  const items = [...announcements];
+  if (items.length === 0 && message && message.trim() !== '') {
+    items.push({
+      id: 'legacy',
+      title: '알림 메시지',
+      content: message,
+      imageUrl: null,
+      createdAt: new Date()
+    });
+  }
+
+  if (items.length === 0) return null;
+
   return (
-    <div 
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0,0,0,0.6)', zIndex: 10000, display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        backdropFilter: 'blur(4px)', padding: '1.5rem'
-      }}
-    >
+    <>
       <div 
         style={{
-          background: '#ffffff',
-          borderRadius: '24px', padding: '2rem 1.5rem 1.5rem 1.5rem', maxWidth: '360px', width: '100%',
-          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-          position: 'relative',
-          animation: 'fadeInUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.75)', zIndex: 10000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(8px)', padding: '1.25rem'
         }}
       >
-        <div style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)', background: '#0284c7', color: 'white', padding: '8px 20px', borderRadius: '20px', fontWeight: 900, boxShadow: '0 4px 10px rgba(2,132,199,0.3)', whiteSpace: 'nowrap' }}>
-          📢 공지사항
-        </div>
-        
-        <div style={{ margin: '1.5rem 0 2rem 0', fontSize: '1.1rem', color: '#334155', fontWeight: 700, lineHeight: 1.6, whiteSpace: 'pre-wrap', textAlign: 'center' }}>
-          {message}
-        </div>
-        
-        <div style={{ display: 'flex', gap: '0.8rem' }}>
-          <button
-            onClick={() => closePopup(true)}
-            style={{
-              flex: 1, padding: '1rem', borderRadius: '14px',
-              background: '#f1f5f9', color: '#64748b', 
-              fontWeight: 800, fontSize: '0.95rem',
-              border: 'none', cursor: 'pointer'
-            }}
-          >
-            오늘 하루 보지 않기
-          </button>
-          <button
-            onClick={() => closePopup(false)}
-            style={{
-              flex: 1, padding: '1rem', borderRadius: '14px',
-              background: '#0284c7', color: '#fff', 
-              fontWeight: 800, fontSize: '1.05rem',
-              border: 'none', cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(2,132,199,0.2)'
-            }}
-          >
-            확인
-          </button>
+        <div 
+          style={{
+            background: '#ffffff',
+            borderRadius: '28px', 
+            padding: '2.2rem 1.5rem 1.5rem 1.5rem', 
+            maxWidth: '420px', 
+            width: '100%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+            position: 'relative',
+            animation: 'fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+        >
+          <div style={{ 
+            position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)', 
+            background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', 
+            padding: '8px 24px', borderRadius: '30px', fontWeight: 900, 
+            boxShadow: '0 8px 20px rgba(139, 92, 246, 0.4)', whiteSpace: 'nowrap',
+            fontSize: '0.95rem', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px'
+          }}>
+            <span>🔔</span> 공지사항 및 시간표 안내
+          </div>
+          
+          {/* Scrollable notices container */}
+          <div style={{ 
+            overflowY: 'auto', 
+            flex: 1, 
+            margin: '1rem 0 1.5rem 0',
+            paddingRight: '4px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.5rem'
+          }}>
+            {items.map((ann, idx) => (
+              <div 
+                key={ann.id} 
+                style={{ 
+                  borderBottom: idx < items.length - 1 ? '1px dashed #e2e8f0' : 'none',
+                  paddingBottom: idx < items.length - 1 ? '1.5rem' : '0'
+                }}
+              >
+                <div style={{ 
+                  fontSize: '1.15rem', 
+                  color: '#1e293b', 
+                  fontWeight: 900, 
+                  lineHeight: 1.4, 
+                  marginBottom: '0.6rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '6px'
+                }}>
+                  <span style={{ color: '#8b5cf6' }}>•</span>
+                  <span>{ann.title}</span>
+                </div>
+                
+                <div style={{ 
+                  fontSize: '0.92rem', 
+                  color: '#475569', 
+                  fontWeight: 600, 
+                  lineHeight: 1.6, 
+                  whiteSpace: 'pre-wrap',
+                  marginBottom: ann.imageUrl ? '0.8rem' : '0'
+                }}>
+                  {ann.content}
+                </div>
+
+                {ann.imageUrl && (
+                  <div style={{ position: 'relative', marginTop: '0.8rem', cursor: 'zoom-in' }} onClick={() => setSelectedImage(ann.imageUrl)}>
+                    <img 
+                      src={ann.imageUrl} 
+                      alt={ann.title} 
+                      style={{ 
+                        width: '100%', 
+                        maxHeight: '220px', 
+                        objectFit: 'cover', 
+                        borderRadius: '16px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                      }} 
+                    />
+                    <div style={{ 
+                      position: 'absolute', bottom: '10px', right: '10px', 
+                      background: 'rgba(15, 23, 42, 0.75)', color: 'white', 
+                      padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', 
+                      fontWeight: 800, backdropFilter: 'blur(4px)' 
+                    }}>
+                      🔍 크게보기
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.8rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+            <button
+              onClick={() => closePopup(true)}
+              style={{
+                flex: 1, padding: '0.9rem', borderRadius: '16px',
+                background: '#f1f5f9', color: '#64748b', 
+                fontWeight: 800, fontSize: '0.9rem',
+                border: 'none', cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              오늘 하루 보지 않기
+            </button>
+            <button
+              onClick={() => closePopup(false)}
+              style={{
+                flex: 1, padding: '0.9rem', borderRadius: '16px',
+                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: '#fff', 
+                fontWeight: 800, fontSize: '1rem',
+                border: 'none', cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)'
+              }}
+            >
+              확인
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Lightbox for full screen image view */}
+      {selectedImage && (
+        <div 
+          onClick={() => setSelectedImage(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.95)', zIndex: 20000, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out', padding: '1rem',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <img 
+            src={selectedImage} 
+            alt="시간표 크게보기" 
+            style={{ 
+              maxWidth: '90%', 
+              maxHeight: '90vh', 
+              objectFit: 'contain',
+              borderRadius: '8px',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+            }} 
+          />
+          <div style={{ 
+            position: 'absolute', top: '20px', right: '20px', 
+            background: 'rgba(255,255,255,0.2)', color: 'white', 
+            padding: '8px 16px', borderRadius: '20px', fontSize: '0.9rem', 
+            fontWeight: 800, border: '1px solid rgba(255,255,255,0.3)' 
+          }}>
+            터치하여 닫기 ✕
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

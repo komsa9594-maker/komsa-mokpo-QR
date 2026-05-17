@@ -5,12 +5,23 @@ import {
   CalendarDays, Settings, Star, ExternalLink, Activity, Target, PlusCircle, 
   Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle, Bell
 } from 'lucide-react';
-import { updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, updateCustomLink, addCustomLinkToAllShips, copyLinkToOtherShips } from './actions';
+import { 
+  updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, 
+  updateCustomLink, addCustomLinkToAllShips, copyLinkToOtherShips,
+  addAnnouncement, updateAnnouncement, deleteAnnouncement, toggleAnnouncementActive
+} from './actions';
 
-export default function ShipDashboard({ ship, config, overallStats, urlOrigin, isGlobal = false }: any) {
+export default function ShipDashboard({ ship, config, overallStats, announcements = [], urlOrigin, isGlobal = false }: any) {
   const [tab, setTab] = useState(isGlobal ? 'stats' : 'links');
   const [editing, setEditing] = useState<string | null>(null);
   const [editingVal, setEditingVal] = useState('');
+
+  // Announcement states
+  const [isAddingNotice, setIsAddingNotice] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState('');
+  const [noticeContent, setNoticeContent] = useState('');
+  const [noticeImage, setNoticeImage] = useState<string | null>(null);
+  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
   
   // Safety Features State
   const [deleteConfirmLink, setDeleteConfirmLink] = useState<any>(null); // Link to delete
@@ -214,40 +225,229 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
 
           <div className={styles.sectionHeader} style={{ marginTop: '2rem' }}>
             <div className={styles.sectionTitle}><Bell size={18} color="#8b5cf6" /> 공지사항 관리</div>
+            <button className={styles.addBtn} onClick={() => {
+              setIsAddingNotice(true);
+              setNoticeTitle('');
+              setNoticeContent('');
+              setNoticeImage(null);
+              setEditingNoticeId(null);
+            }} style={{ background: '#8b5cf6', color: '#fff' }}>
+              <PlusCircle size={16} /> 공지사항 추가
+            </button>
           </div>
-          <div className={styles.linkCard}>
-            <div className={styles.linkLeft}>
-               <div className={`${styles.linkIconBox} ${styles.purple}`}><CalendarDays size={24} /></div>
-               <div className={styles.linkInfo}>
-                 <h4>공지사항 (알림 메시지)</h4>
-                 {editing !== 'weather' ? (
-                   <>
-                     <p>{config?.tomorrowWeather || '등록된 알림이 없습니다.'}</p>
-                     <div className={styles.badges}>
-                       <span className={`${styles.badge} ${styles.primary}`}>공통 공지</span>
-                       <span className={`${styles.badge} ${styles.active}`}>전선박 적용</span>
-                     </div>
-                   </>
-                 ) : (
-                   <div className={styles.editInline}>
-                     <textarea 
-                        className={styles.editInput} 
-                        autoFocus 
-                        defaultValue={config?.tomorrowWeather || ''} 
-                        onChange={(e)=>setEditingVal(e.target.value)}
-                        style={{ width: '100%', minHeight: '80px', padding: '0.75rem' }}
-                     />
-                     <div style={{display:'flex', gap:'0.5rem', marginTop: '0.5rem'}}>
-                       <button className={styles.editSave} onClick={handleSaveWeather}>변경 저장</button>
-                       <button className={styles.actionBtn} onClick={()=>setEditing(null)}>취소</button>
-                     </div>
-                   </div>
-                 )}
-               </div>
+
+          {/* 공지사항 추가 / 수정 폼 */}
+          {(isAddingNotice || editingNoticeId) && (
+            <div className={styles.chartCard} style={{ animation: 'fadeIn 0.2s', border: '2px solid #8b5cf6', marginBottom: '1.5rem', background: '#fcfaff' }}>
+              <div className={styles.chartHeader} style={{ color: '#8b5cf6' }}>
+                <Bell size={18} /> {editingNoticeId ? '공지사항 수정' : '새로운 공지사항 작성'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.4rem', color: '#4b5563' }}>공지 제목</label>
+                  <input
+                    type="text"
+                    value={noticeTitle}
+                    onChange={(e) => setNoticeTitle(e.target.value)}
+                    placeholder="예: 목포-제주 노선 운항시간 변경 안내"
+                    className={styles.editInput}
+                    style={{ width: '100%', padding: '0.6rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.4rem', color: '#4b5563' }}>공지 내용</label>
+                  <textarea
+                    value={noticeContent}
+                    onChange={(e) => setNoticeContent(e.target.value)}
+                    placeholder="공지할 상세 내용을 입력해 주세요. (줄바꿈이 적용됩니다)"
+                    className={styles.editInput}
+                    style={{ width: '100%', minHeight: '100px', padding: '0.6rem', lineHeight: '1.5' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.4rem', color: '#4b5563' }}>🖼️ 사진/시간표 이미지 첨부 (최대 1.5MB)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 1.5 * 1024 * 1024) {
+                          alert("이미지 크기는 최대 1.5MB까지만 업로드 가능합니다.");
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setNoticeImage(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ fontSize: '0.85rem', color: '#64748b' }}
+                  />
+                  {noticeImage && (
+                    <div style={{ marginTop: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.5rem', background: '#fff', maxWidth: '300px' }}>
+                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 0.4rem 0', fontWeight: 800 }}>선택된 이미지 미리보기:</p>
+                      <img src={noticeImage} alt="미리보기" style={{ width: '100%', height: 'auto', borderRadius: '8px' }} />
+                      <button 
+                        type="button"
+                        onClick={() => setNoticeImage(null)}
+                        style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.75rem', padding: '3px 8px', marginTop: '0.4rem', cursor: 'pointer', fontWeight: 800 }}
+                      >
+                        이미지 삭제
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button
+                    className={styles.editSave}
+                    style={{ background: '#8b5cf6' }}
+                    onClick={async () => {
+                      if (!noticeTitle || !noticeContent) {
+                        alert('제목과 내용을 모두 입력해 주세요.');
+                        return;
+                      }
+                      try {
+                        if (editingNoticeId) {
+                          await updateAnnouncement(editingNoticeId, noticeTitle, noticeContent, noticeImage);
+                        } else {
+                          await addAnnouncement(noticeTitle, noticeContent, noticeImage);
+                        }
+                        setIsAddingNotice(false);
+                        setEditingNoticeId(null);
+                        window.location.reload();
+                      } catch (err) {
+                        alert('저장 실패: ' + (err as Error).message);
+                      }
+                    }}
+                  >
+                    확인 및 저장
+                  </button>
+                  <button
+                    className={styles.actionBtn}
+                    onClick={() => {
+                      setIsAddingNotice(false);
+                      setEditingNoticeId(null);
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
             </div>
-            {editing !== 'weather' && (
-              <div className={styles.actions}>
-                 <button className={styles.actionBtn} onClick={() => { setEditing('weather'); setEditingVal(config?.tomorrowWeather||''); }}><Edit2 size={14}/> 메시지 수정</button>
+          )}
+
+          {/* 등록된 공지사항 목록 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+            {announcements.length > 0 ? (
+              announcements.map((ann: any) => (
+                <div 
+                  className={styles.linkCard} 
+                  key={ann.id}
+                  style={{ 
+                    borderLeft: ann.isActive ? '5px solid #8b5cf6' : '5px solid #cbd5e1',
+                    background: ann.isActive ? '#fff' : '#f8fafc',
+                    opacity: ann.isActive ? 1 : 0.75
+                  }}
+                >
+                  <div className={styles.linkLeft} style={{ alignItems: 'flex-start' }}>
+                    <div className={`${styles.linkIconBox} ${styles.purple}`} style={{ marginTop: '0.2rem', background: '#8b5cf6', color: '#fff' }}>
+                      <Bell size={24} />
+                    </div>
+                    <div className={styles.linkInfo} style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#1e293b' }}>
+                          {ann.title}
+                        </h4>
+                        <span style={{ 
+                          fontSize: '0.72rem', 
+                          color: '#64748b', 
+                          fontWeight: 700 
+                        }}>
+                          {new Date(ann.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      <p style={{ 
+                        whiteSpace: 'pre-wrap', 
+                        color: '#475569', 
+                        fontSize: '0.88rem', 
+                        lineHeight: '1.6',
+                        margin: '0.6rem 0 0.8rem 0' 
+                      }}>
+                        {ann.content}
+                      </p>
+
+                      {ann.imageUrl && (
+                        <div style={{ marginTop: '0.8rem', maxWidth: '400px', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                          <img src={ann.imageUrl} alt="첨부 이미지" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                        </div>
+                      )}
+
+                      <div className={styles.badges} style={{ marginTop: '0.6rem' }}>
+                        <span className={`${styles.badge} ${styles.primary}`}>공지사항</span>
+                        <span className={`${styles.badge} ${ann.isActive ? styles.active : ''}`} style={{ background: ann.isActive ? '#8b5cf6' : '#cbd5e1', color: '#fff' }}>
+                          {ann.isActive ? '게시 중' : '비활성화'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.actions} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
+                    <button
+                      className={styles.actionBtn}
+                      onClick={async () => {
+                        await toggleAnnouncementActive(ann.id, !ann.isActive);
+                        window.location.reload();
+                      }}
+                      style={{ 
+                        color: ann.isActive ? '#64748b' : '#8b5cf6',
+                        backgroundColor: ann.isActive ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid ' + (ann.isActive ? '#e2e8f0' : 'rgba(139, 92, 246, 0.4)'),
+                        fontWeight: 800
+                      }}
+                    >
+                      {ann.isActive ? '숨기기' : '게시하기'}
+                    </button>
+                    <button
+                      className={styles.actionBtn}
+                      onClick={() => {
+                        setEditingNoticeId(ann.id);
+                        setNoticeTitle(ann.title);
+                        setNoticeContent(ann.content);
+                        setNoticeImage(ann.imageUrl);
+                        setIsAddingNotice(false);
+                      }}
+                      style={{ 
+                        color: '#0ea5e9', 
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                        border: '1px solid rgba(14, 165, 233, 0.4)',
+                        fontWeight: 800
+                      }}
+                    >
+                      수정
+                    </button>
+                    <button
+                      className={`${styles.actionBtn} ${styles.danger}`}
+                      onClick={async () => {
+                        if (confirm('이 공지사항을 삭제하시겠습니까?')) {
+                          await deleteAnnouncement(ann.id);
+                          window.location.reload();
+                        }
+                      }}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ 
+                textAlign: 'center', padding: '3rem 2rem', background: '#f8fafc', 
+                borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#64748b' 
+              }}>
+                📢 등록된 공지사항이 없습니다. 우측 상단의 [+ 공지사항 추가] 버튼을 눌러 여객용 알림 팝업 및 시간표 사진을 게시해 보세요!
               </div>
             )}
           </div>
