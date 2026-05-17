@@ -89,10 +89,7 @@ export const shipRouteMap: Record<string, ShipRouteInfo> = {
     "ports": [
       "목포",
       "서거차",
-      "서거차도",
-      "가거도",
-      "가거",
-      "Gageodo"
+      "서거차도"
     ]
   },
   "플로피아2": {
