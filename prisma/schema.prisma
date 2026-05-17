@@ -27,14 +27,16 @@ model Ship {
 }
 
 model ShipLink {
-  id        String   @id @default(cuid())
-  shipId    String
-  title     String
-  icon      String?
-  url       String
-  clicks    Int      @default(0)
-  createdAt DateTime @default(now())
-  ship      Ship     @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  shipId      String
+  title       String
+  icon        String?
+  url         String
+  description String?
+  guideText   String?
+  clicks      Int      @default(0)
+  createdAt   DateTime @default(now())
+  ship        Ship     @relation(fields: [shipId], references: [id], onDelete: Cascade)
 }
 
 model Visit {

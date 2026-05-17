@@ -260,8 +260,8 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
               return 0;
             })
             .map((link: any) => {
-              let desc = '여객선 이용을 위한 편리한 부가 서비스입니다.';
-              let guideText = '바로가기';
+              let desc = link.description || '여객선 이용을 위한 편리한 부가 서비스입니다.';
+              let guideText = link.guideText || '바로가기';
               let icon = link.icon || 'ExternalLink';
               let myUrl = link.url;
               let displayTitle = link.title || '';

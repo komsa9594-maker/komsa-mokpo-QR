@@ -196,6 +196,11 @@ export function ActionButton({
     if(iconName === 'MapPin') return <MapPin size={28} strokeWidth={2.5} />;
     if(iconName === 'Anchor') return <Anchor size={28} strokeWidth={2.5} />;
     if(iconName === 'ExternalLink') return <ExternalLink size={26} strokeWidth={2.5} />;
+    
+    if (iconName && iconName !== 'ChevronRight') {
+      return <span style={{ fontSize: '26px', lineHeight: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>{iconName}</span>;
+    }
+    
     return <ChevronRight size={26} strokeWidth={2.5} />;
   };
 

@@ -5,7 +5,7 @@ import {
   CalendarDays, Settings, Star, ExternalLink, Activity, Target, PlusCircle, 
   Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle 
 } from 'lucide-react';
-import { updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, updateCustomLink } from './actions';
+import { updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, updateCustomLink, addCustomLinkToAllShips } from './actions';
 
 export default function ShipDashboard({ ship, config, overallStats, urlOrigin, isGlobal = false }: any) {
   const [tab, setTab] = useState(isGlobal ? 'stats' : 'links');
@@ -255,7 +255,17 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
               const t = prompt('추가할 서비스 이름:');
               if(!t)return;
               const u = prompt('URL 주소 (https://...):');
-              if(t&&u) addCustomLink(ship.id, t, u);
+              if(!u)return;
+              const i = prompt('표시할 아이콘(이모티콘) 하나를 입력하세요 (예: 🏝️, 🎫)\n* 빈칸으로 두면 기본 아이콘으로 설정됩니다.');
+              const d = prompt('서비스 설명 (예: 여객선 이용을 위한 편리한 부가 서비스입니다)\n* 빈칸으로 두어도 됩니다.');
+              const g = prompt('버튼 텍스트 (예: 앱 설치, 바로가기)\n* 빈칸으로 두면 기본값이 사용됩니다.');
+              const isAll = confirm('이 링크를 [모든 선박]에 일괄 추가하시겠습니까?\n(확인: 전체 선박 추가 / 취소: 현재 선박에만 추가)');
+              
+              if (isAll) {
+                 addCustomLinkToAllShips(t, u, i || 'ExternalLink', d || '', g || '');
+              } else {
+                 addCustomLink(ship.id, t, u, i || 'ExternalLink', d || '', g || '');
+              }
             }}><PlusCircle size={16}/> 추가</button>
           </div>
 
@@ -264,7 +274,9 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
             return (
               <div className={styles.linkCard} key={l.id}>
                 <div className={styles.linkLeft}>
-                   <div className={`${styles.linkIconBox} ${styles.pink}`}><ExternalLink size={24} /></div>
+                   <div className={`${styles.linkIconBox} ${styles.pink}`} style={{ fontSize: '1.2rem' }}>
+                     {l.icon !== 'ExternalLink' && l.icon !== 'MapPin' && l.icon !== 'Glasses' && l.icon !== 'BatteryCharging' ? l.icon : <ExternalLink size={24} />}
+                   </div>
                    <div className={styles.linkInfo}>
                      {isEditing ? (
                        <div className={styles.editForm}>
@@ -273,11 +285,33 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
                            defaultValue={l.title} 
                            id={`title-${l.id}`} 
                            autoFocus 
+                           placeholder="서비스 이름"
                          />
                          <input 
                            className={styles.editInput} 
                            defaultValue={l.url} 
                            id={`url-${l.id}`} 
+                           placeholder="URL (https://...)"
+                         />
+                         <input 
+                           className={styles.editInput} 
+                           defaultValue={l.icon !== 'ExternalLink' && l.icon !== 'MapPin' && l.icon !== 'Glasses' && l.icon !== 'BatteryCharging' ? l.icon : ''} 
+                           id={`icon-${l.id}`} 
+                           placeholder="이모티콘 (예: 🏝️)"
+                           style={{ width: '100px' }}
+                         />
+                         <input 
+                           className={styles.editInput} 
+                           defaultValue={l.description || ''} 
+                           id={`desc-${l.id}`} 
+                           placeholder="설명 (옵션)"
+                         />
+                         <input 
+                           className={styles.editInput} 
+                           defaultValue={l.guideText || ''} 
+                           id={`guide-${l.id}`} 
+                           placeholder="버튼명 (옵션)"
+                           style={{ width: '100px' }}
                          />
                        </div>
                      ) : (
@@ -301,9 +335,13 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
                           onClick={async () => {
                              const newTitle = (document.getElementById(`title-${l.id}`) as HTMLInputElement).value;
                              const newUrl = (document.getElementById(`url-${l.id}`) as HTMLInputElement).value;
+                             const newIconRaw = (document.getElementById(`icon-${l.id}`) as HTMLInputElement)?.value;
+                             const newIcon = newIconRaw ? newIconRaw.trim() : 'ExternalLink';
+                             const newDesc = (document.getElementById(`desc-${l.id}`) as HTMLInputElement)?.value || '';
+                             const newGuide = (document.getElementById(`guide-${l.id}`) as HTMLInputElement)?.value || '';
                              if (newTitle && newUrl) {
                                 try {
-                                   await updateCustomLink(l.id, newTitle, newUrl);
+                                   await updateCustomLink(l.id, newTitle, newUrl, newIcon, newDesc, newGuide);
                                    setEditing(null);
                                    window.location.reload();
                                 } catch (err) {

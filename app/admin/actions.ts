@@ -66,10 +66,20 @@ export async function updateWeather(formData: FormData) {
   revalidatePath('/admin');
 }
 
-export async function addCustomLink(shipId: string, title: string, url: string) {
+export async function addCustomLink(shipId: string, title: string, url: string, icon: string = 'ExternalLink', description: string = '', guideText: string = '') {
   await prisma.shipLink.create({
-    data: { shipId, title, url, icon: 'ExternalLink' }
+    data: { shipId, title, url, icon, description: description || null, guideText: guideText || null }
   });
+  revalidatePath('/admin');
+}
+
+export async function addCustomLinkToAllShips(title: string, url: string, icon: string = 'ExternalLink', description: string = '', guideText: string = '') {
+  const ships = await prisma.ship.findMany();
+  for (const ship of ships) {
+    await prisma.shipLink.create({
+      data: { shipId: ship.id, title, url, icon, description: description || null, guideText: guideText || null }
+    });
+  }
   revalidatePath('/admin');
 }
 
@@ -91,10 +101,10 @@ export async function updateShipInfo(shipId: string, data: any) {
   revalidatePath('/admin');
 }
 
-export async function updateCustomLink(id: string, title: string, url: string) {
+export async function updateCustomLink(id: string, title: string, url: string, icon: string = 'ExternalLink', description: string = '', guideText: string = '') {
   await prisma.shipLink.update({
     where: { id },
-    data: { title, url }
+    data: { title, url, icon, description: description || null, guideText: guideText || null }
   });
   revalidatePath('/admin');
   revalidatePath('/');
