@@ -83,6 +83,36 @@ export async function addCustomLinkToAllShips(title: string, url: string, icon: 
   revalidatePath('/admin');
 }
 
+export async function copyLinkToOtherShips(linkId: string) {
+  const link = await prisma.shipLink.findUnique({ where: { id: linkId } });
+  if (!link) return;
+  
+  const ships = await prisma.ship.findMany({
+    where: { id: { not: link.shipId } }
+  });
+  
+  for (const ship of ships) {
+    // 중복 방지: 동일한 URL을 가진 링크가 이미 있는지 확인
+    const existing = await prisma.shipLink.findFirst({
+      where: { shipId: ship.id, url: link.url }
+    });
+    
+    if (!existing) {
+      await prisma.shipLink.create({
+        data: { 
+          shipId: ship.id, 
+          title: link.title, 
+          url: link.url, 
+          icon: link.icon, 
+          description: link.description, 
+          guideText: link.guideText 
+        }
+      });
+    }
+  }
+  revalidatePath('/admin');
+}
+
 export async function deleteCustomLink(id: string) {
   await prisma.shipLink.delete({ where: { id } });
   revalidatePath('/admin');

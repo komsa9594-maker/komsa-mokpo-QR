@@ -5,7 +5,7 @@ import {
   CalendarDays, Settings, Star, ExternalLink, Activity, Target, PlusCircle, 
   Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle 
 } from 'lucide-react';
-import { updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, updateCustomLink, addCustomLinkToAllShips } from './actions';
+import { updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, updateCustomLink, addCustomLinkToAllShips, copyLinkToOtherShips } from './actions';
 
 export default function ShipDashboard({ ship, config, overallStats, urlOrigin, isGlobal = false }: any) {
   const [tab, setTab] = useState(isGlobal ? 'stats' : 'links');
@@ -385,6 +385,25 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
                           }}
                         >
                           <Trash2 size={14}/> 삭제
+                        </button>
+                        <button 
+                          className={styles.actionBtn} 
+                          onClick={async () => {
+                             if(confirm(`"${l.title}" 링크를 다른 모든 선박에 일괄 추가하시겠습니까?`)) {
+                                await copyLinkToOtherShips(l.id);
+                                alert('다른 모든 선박에 성공적으로 일괄 추가되었습니다!');
+                             }
+                          }}
+                          style={{ 
+                            color: '#8b5cf6', 
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)', 
+                            border: '1px solid rgba(139, 92, 246, 0.4)',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '10px',
+                            fontWeight: 800
+                          }}
+                        >
+                          <PlusCircle size={14}/> 전체 선박 복사
                         </button>
                      </>
                    )}
