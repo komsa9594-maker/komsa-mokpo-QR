@@ -117,53 +117,41 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
           </div>
 
           {/* 🕐 운항 정보 리스트 */}
-          {schedules && schedules.length > 0 && (
+          {schedules && schedules.length > 0 && (() => {
+            const renderScheduleItem = (s: any, i: number) => {
+              // nvg_stts_nm: 출항전, 운항중, 완료 / nvg_se_nm: 정상, 증선, 비운항, 통제, 대기/지연
+              const statusTxt = s.nvg_stts_nm || s.nvg_se_nm || '정상';
+              let statusColor = '#10b981'; // 기본: 초록
+              let statusBg = '#10b98111';
+              if (statusTxt.includes('출항전')) { statusColor = '#f59e0b'; statusBg = '#f59e0b18'; }
+              else if (statusTxt.includes('운항중')) { statusColor = '#3b82f6'; statusBg = '#3b82f618'; }
+              else if (statusTxt.includes('완료')) { statusColor = '#10b981'; statusBg = '#10b98111'; }
+              else if (statusTxt.includes('통제') || statusTxt.includes('결항') || statusTxt.includes('비운항')) { statusColor = '#ef4444'; statusBg = '#ef444418'; }
+              return (
+                <div key={i} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', justifyContent: 'center', marginBottom: '0.6rem' }}>
+                  <span style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>🕐 {formatTime(s.sail_tm)}</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '3px 10px', borderRadius: '6px', background: statusBg, border: `1px solid ${statusColor}44`, color: statusColor }}>{statusTxt}</span>
+                  <span style={{ opacity: 0.1 }}>|</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#64748b' }}>{s.oport_nm} ➔ {s.dest_nm}</span>
+                </div>
+              );
+            };
+            return (
             <div style={{ fontSize: '0.9rem', color: '#475569', marginTop: '0.5rem', padding: '1.1rem', background: '#f8fafc', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
-               {schedules.slice(0, 5).map((s:any, i:number) => {
-                 const statusTxt = s.nvg_stts_nm || s.nvg_se_nm || '정상';
-                 const isCancel = statusTxt.includes('통제') || statusTxt.includes('결항') || statusTxt.includes('비운항');
-                 const statusColor = isCancel ? '#ef4444' : '#10b981';
-                 
-                 return (
-                   <div key={i} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', justifyContent: 'center', marginBottom: '0.6rem' }}>
-                     <span style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>🕐 {formatTime(s.sail_tm)}</span>
-                     <span 
-                       style={{ 
-                         fontSize: '0.72rem', fontWeight: 900, padding: '3px 10px', borderRadius: '6px', 
-                         background: `${statusColor}11`, border: `1px solid ${statusColor}44`, color: statusColor 
-                       }}
-                     >
-                       {statusTxt}
-                     </span>
-                     <span style={{ opacity: 0.1 }}>|</span>
-                     <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#64748b' }}>{s.oport_nm} ➔ {s.dest_nm}</span>
-                   </div>
-                 );
-               })}
+               {schedules.slice(0, 5).map(renderScheduleItem)}
                {schedules.length > 5 && (
                  <details style={{ marginTop: '0.3rem' }}>
                    <summary style={{ cursor: 'pointer', textAlign: 'center', color: '#0284c7', fontWeight: 800, fontSize: '0.85rem', padding: '0.4rem', borderRadius: '10px', background: '#e0f2fe' }}>
                      나머지 {schedules.length - 5}개 스케줄 더보기 ▼
                    </summary>
                    <div style={{ marginTop: '0.6rem' }}>
-                     {schedules.slice(5).map((s:any, i:number) => {
-                       const statusTxt = s.nvg_stts_nm || s.nvg_se_nm || '정상';
-                       const isCancel = statusTxt.includes('통제') || statusTxt.includes('결항') || statusTxt.includes('비운항');
-                       const statusColor = isCancel ? '#ef4444' : '#10b981';
-                       return (
-                         <div key={i+5} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', justifyContent: 'center', marginBottom: '0.6rem' }}>
-                           <span style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>🕐 {formatTime(s.sail_tm)}</span>
-                           <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '3px 10px', borderRadius: '6px', background: `${statusColor}11`, border: `1px solid ${statusColor}44`, color: statusColor }}>{statusTxt}</span>
-                           <span style={{ opacity: 0.1 }}>|</span>
-                           <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#64748b' }}>{s.oport_nm} ➔ {s.dest_nm}</span>
-                         </div>
-                       );
-                     })}
+                     {schedules.slice(5).map((s: any, i: number) => renderScheduleItem(s, i + 5))}
                    </div>
                  </details>
                )}
             </div>
-          )}
+            );
+          })()}
 
           {/* 기상청 날씨 및 안전 진단 카드 임시 제거 (사용자 요청) */}
           {statusInfo.reason && (
