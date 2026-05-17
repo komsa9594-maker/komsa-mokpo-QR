@@ -106,11 +106,23 @@ async function fetchScheduleByDate(
 
     // 다양한 응답 구조 처리
     const body = data?.response?.body;
+    let items = null;
     if (body?.items?.item) {
-      return Array.isArray(body.items.item) ? body.items.item : [body.items.item];
+      items = Array.isArray(body.items.item) ? body.items.item : [body.items.item];
+    } else if (Array.isArray(data)) {
+      items = data;
+    } else if (data?.list && Array.isArray(data.list)) {
+      items = data.list;
     }
-    if (Array.isArray(data)) return data;
-    if (data?.list && Array.isArray(data.list)) return data.list;
+
+    if (items) {
+      // 출항 시각(sail_tm) 기준으로 오름차순 정렬
+      return items.sort((a: any, b: any) => {
+        const timeA = parseInt(a.sail_tm || '0', 10);
+        const timeB = parseInt(b.sail_tm || '0', 10);
+        return timeA - timeB;
+      });
+    }
 
     return null;
   } catch (e) {
