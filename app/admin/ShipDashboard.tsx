@@ -216,7 +216,7 @@ export default function ShipDashboard({ ship, config, overallStats, urlOrigin, i
             <div className={styles.linkLeft}>
                <div className={`${styles.linkIconBox} ${styles.purple}`}><CalendarDays size={24} /></div>
                <div className={styles.linkInfo}>
-                 <h4>내일의 운항예보 (알림 메시지)</h4>
+                 <h4>공지사항 (알림 메시지)</h4>
                  {editing !== 'weather' ? (
                    <>
                      <p>{config?.tomorrowWeather || '등록된 알림이 없습니다.'}</p>

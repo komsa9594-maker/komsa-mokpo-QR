@@ -5,6 +5,87 @@ import React, { useEffect, useState } from 'react';
 import { Anchor, BatteryCharging, BookOpen, Bus, CalendarClock, CheckSquare, ChevronRight, ClipboardCheck, ExternalLink, Glasses, Heart, Info, MapPin, Navigation, Zap } from 'lucide-react';
 import styles from './page.module.css';
 
+export function NoticePopup({ message }: { message?: string | null }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (message && message.trim() !== '') {
+      const hideUntil = localStorage.getItem('hide_notice_until');
+      if (!hideUntil || new Date().getTime() > parseInt(hideUntil, 10)) {
+        setIsOpen(true);
+      }
+    }
+  }, [message]);
+
+  const closePopup = (hideForToday: boolean) => {
+    if (hideForToday) {
+      const tomorrow = new Date();
+      tomorrow.setHours(24, 0, 0, 0);
+      localStorage.setItem('hide_notice_until', tomorrow.getTime().toString());
+    }
+    setIsOpen(false);
+  };
+
+  if (!mounted || !isOpen) return null;
+
+  return (
+    <div 
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.6)', zIndex: 10000, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(4px)', padding: '1.5rem'
+      }}
+    >
+      <div 
+        style={{
+          background: '#ffffff',
+          borderRadius: '24px', padding: '2rem 1.5rem 1.5rem 1.5rem', maxWidth: '360px', width: '100%',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+          position: 'relative',
+          animation: 'fadeInUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }}
+      >
+        <div style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)', background: '#0284c7', color: 'white', padding: '8px 20px', borderRadius: '20px', fontWeight: 900, boxShadow: '0 4px 10px rgba(2,132,199,0.3)', whiteSpace: 'nowrap' }}>
+          📢 공지사항
+        </div>
+        
+        <div style={{ margin: '1.5rem 0 2rem 0', fontSize: '1.1rem', color: '#334155', fontWeight: 700, lineHeight: 1.6, whiteSpace: 'pre-wrap', textAlign: 'center' }}>
+          {message}
+        </div>
+        
+        <div style={{ display: 'flex', gap: '0.8rem' }}>
+          <button
+            onClick={() => closePopup(true)}
+            style={{
+              flex: 1, padding: '1rem', borderRadius: '14px',
+              background: '#f1f5f9', color: '#64748b', 
+              fontWeight: 800, fontSize: '0.95rem',
+              border: 'none', cursor: 'pointer'
+            }}
+          >
+            오늘 하루 보지 않기
+          </button>
+          <button
+            onClick={() => closePopup(false)}
+            style={{
+              flex: 1, padding: '1rem', borderRadius: '14px',
+              background: '#0284c7', color: '#fff', 
+              fontWeight: 800, fontSize: '1.05rem',
+              border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(2,132,199,0.2)'
+            }}
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Tracker({ shipId }: { shipId: string }) {
   useEffect(() => {
     fetch('/api/stats/visit', { method: 'POST', body: JSON.stringify({ shipId }), headers: { 'Content-Type': 'application/json' } });
