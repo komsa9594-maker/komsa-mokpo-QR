@@ -11,7 +11,7 @@ import {
   addAnnouncement, updateAnnouncement, deleteAnnouncement, toggleAnnouncementActive
 } from './actions';
 
-export default function ShipDashboard({ ship, config, overallStats, announcements = [], urlOrigin, isGlobal = false }: any) {
+export default function ShipDashboard({ ship, config, overallStats, announcements = [], allShips = [], urlOrigin, isGlobal = false }: any) {
   const [tab, setTab] = useState(isGlobal ? 'stats' : 'links');
   const [editing, setEditing] = useState<string | null>(null);
   const [editingVal, setEditingVal] = useState('');
@@ -22,6 +22,8 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
   const [noticeContent, setNoticeContent] = useState('');
   const [noticeImage, setNoticeImage] = useState<string | null>(null);
   const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
+  const [noticeTargetType, setNoticeTargetType] = useState<'all' | 'specific'>('all');
+  const [selectedTargetShips, setSelectedTargetShips] = useState<string[]>([]);
   
   // Safety Features State
   const [deleteConfirmLink, setDeleteConfirmLink] = useState<any>(null); // Link to delete
@@ -264,6 +266,63 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
                     style={{ width: '100%', minHeight: '100px', padding: '0.6rem', lineHeight: '1.5' }}
                   />
                 </div>
+
+                {/* 🚢 공지 대상 선택 (공통 vs 선박별) */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.4rem', color: '#4b5563' }}>📢 공지 대상 선택</label>
+                  <div style={{ display: 'flex', gap: '1.2rem', marginBottom: '0.6rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', fontWeight: 800, color: '#374151', cursor: 'pointer' }}>
+                      <input 
+                        type="radio" 
+                        name="noticeTarget" 
+                        checked={noticeTargetType === 'all'} 
+                        onChange={() => setNoticeTargetType('all')} 
+                      />
+                      모든 선박 공통공지
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', fontWeight: 800, color: '#374151', cursor: 'pointer' }}>
+                      <input 
+                        type="radio" 
+                        name="noticeTarget" 
+                        checked={noticeTargetType === 'specific'} 
+                        onChange={() => setNoticeTargetType('specific')} 
+                      />
+                      특정 선박 선택 게시
+                    </label>
+                  </div>
+                  
+                  {noticeTargetType === 'specific' && (
+                    <div style={{ 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: '8px 12px', 
+                      background: '#fff', 
+                      border: '1px solid #e2e8f0', 
+                      borderRadius: '12px', 
+                      padding: '0.75rem',
+                      maxHeight: '150px',
+                      overflowY: 'auto'
+                    }}>
+                      {allShips.map((sh: any) => (
+                        <label key={sh.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedTargetShips.includes(sh.id)} 
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTargetShips(prev => [...prev, sh.id]);
+                              } else {
+                                setSelectedTargetShips(prev => prev.filter(id => id !== sh.id));
+                              }
+                            }}
+                          />
+                          {sh.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.4rem', color: '#4b5563' }}>🖼️ 사진/시간표 이미지 첨부 (최대 1.5MB)</label>
                   <input
@@ -308,11 +367,16 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
                         alert('제목과 내용을 모두 입력해 주세요.');
                         return;
                       }
+                      const finalTarget = noticeTargetType === 'all' ? 'all' : selectedTargetShips.join(',');
+                      if (noticeTargetType === 'specific' && selectedTargetShips.length === 0) {
+                        alert('공지를 게시할 선박을 최소 하나 이상 선택해 주세요.');
+                        return;
+                      }
                       try {
                         if (editingNoticeId) {
-                          await updateAnnouncement(editingNoticeId, noticeTitle, noticeContent, noticeImage);
+                          await updateAnnouncement(editingNoticeId, noticeTitle, noticeContent, noticeImage, finalTarget);
                         } else {
-                          await addAnnouncement(noticeTitle, noticeContent, noticeImage);
+                          await addAnnouncement(noticeTitle, noticeContent, noticeImage, finalTarget);
                         }
                         setIsAddingNotice(false);
                         setEditingNoticeId(null);
@@ -387,7 +451,20 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
 
                       <div className={styles.badges} style={{ marginTop: '0.6rem' }}>
                         <span className={`${styles.badge} ${styles.primary}`}>공지사항</span>
-                        <span className={`${styles.badge} ${ann.isActive ? styles.active : ''}`} style={{ background: ann.isActive ? '#8b5cf6' : '#cbd5e1', color: '#fff' }}>
+                        {(!ann.targetShips || ann.targetShips === 'all') ? (
+                          <span className={`${styles.badge} ${styles.active}`} style={{ background: '#8b5cf6', color: '#fff' }}>
+                            공통 공지 (전선박)
+                          </span>
+                        ) : (
+                          <span className={`${styles.badge}`} style={{ background: '#0284c7', color: '#fff', fontWeight: 800 }}>
+                            지정 선박: {
+                              ann.targetShips.split(',')
+                                .map((id: string) => allShips.find((s: any) => s.id === id)?.name || id)
+                                .join(', ')
+                            }
+                          </span>
+                        )}
+                        <span className={`${styles.badge} ${ann.isActive ? styles.active : ''}`} style={{ background: ann.isActive ? '#10b981' : '#cbd5e1', color: '#fff' }}>
                           {ann.isActive ? '게시 중' : '비활성화'}
                         </span>
                       </div>
@@ -418,6 +495,14 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
                         setNoticeContent(ann.content);
                         setNoticeImage(ann.imageUrl);
                         setIsAddingNotice(false);
+                        const targets = ann.targetShips || 'all';
+                        if (targets === 'all') {
+                          setNoticeTargetType('all');
+                          setSelectedTargetShips([]);
+                        } else {
+                          setNoticeTargetType('specific');
+                          setSelectedTargetShips(targets.split(',').filter(Boolean));
+                        }
                       }}
                       style={{ 
                         color: '#0ea5e9', 

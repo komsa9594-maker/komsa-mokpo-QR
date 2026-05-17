@@ -261,6 +261,7 @@ export default function AdminDashboard({ ships, config, allClickEvents, announce
                 config={config} 
                 overallStats={selectedStats} 
                 announcements={announcements}
+                allShips={ships}
                 urlOrigin={urlOrigin} 
                 isGlobal={true}
               />
@@ -275,6 +276,7 @@ export default function AdminDashboard({ ships, config, allClickEvents, announce
                 config={config} 
                 overallStats={selectedStats} 
                 announcements={announcements}
+                allShips={ships}
                 urlOrigin={urlOrigin} 
                 onBack={() => setSelectedShipId('global')}
               />

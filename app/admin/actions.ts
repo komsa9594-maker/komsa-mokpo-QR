@@ -140,18 +140,18 @@ export async function updateCustomLink(id: string, title: string, url: string, i
   revalidatePath('/');
 }
 
-export async function addAnnouncement(title: string, content: string, imageUrl: string | null = null) {
+export async function addAnnouncement(title: string, content: string, imageUrl: string | null = null, targetShips: string = 'all') {
   await prisma.announcement.create({
-    data: { title, content, imageUrl }
+    data: { title, content, imageUrl, targetShips }
   });
   revalidatePath('/admin');
   revalidatePath('/');
 }
 
-export async function updateAnnouncement(id: string, title: string, content: string, imageUrl: string | null = null) {
+export async function updateAnnouncement(id: string, title: string, content: string, imageUrl: string | null = null, targetShips: string = 'all') {
   await prisma.announcement.update({
     where: { id },
-    data: { title, content, imageUrl }
+    data: { title, content, imageUrl, targetShips }
   });
   revalidatePath('/admin');
   revalidatePath('/');

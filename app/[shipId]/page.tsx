@@ -22,7 +22,13 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
 
   const config = await prisma.systemConfig.findUnique({ where: { id: 'global' } });
   const announcements = await prisma.announcement.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      OR: [
+        { targetShips: 'all' },
+        { targetShips: { contains: ship.id } }
+      ]
+    },
     orderBy: { createdAt: 'desc' }
   });
 
