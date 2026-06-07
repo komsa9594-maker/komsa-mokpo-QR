@@ -10,6 +10,7 @@ import {
   updateCustomLink, addCustomLinkToAllShips, copyLinkToOtherShips,
   addAnnouncement, updateAnnouncement, deleteAnnouncement, toggleAnnouncementActive
 } from './actions';
+import { supabase } from '../lib/supabase';
 
 export default function ShipDashboard({ ship, config, overallStats, announcements = [], allShips = [], urlOrigin, isGlobal = false }: any) {
   const [tab, setTab] = useState(isGlobal ? 'stats' : 'links');
@@ -137,9 +138,9 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
             <div className={styles.sectionTitle}><Star size={18} fill="#0ea5e9" color="#0ea5e9" /> 주요 서비스</div>
           </div>
           
-          <CoreLinkCard id="checklistUrl" title="출항 전 점검표" url={ship.checklistUrl} icon="clipboard" color="navy" editing={editing} setEditing={setEditing} editingVal={editingVal} setEditingVal={setEditingVal} onSave={() => handleSaveCore("checklistUrl")} />
-          <CoreLinkCard id="regulationsUrl" title="운항관리규정" url={ship.regulationsUrl} icon="book" color="blue" editing={editing} setEditing={setEditing} editingVal={editingVal} setEditingVal={setEditingVal} onSave={() => handleSaveCore("regulationsUrl")} />
-          <CoreLinkCard id="safetyInfoUrl" title="여객선 안전정보" url={ship.safetyInfoUrl} icon="anchor" color="teal" editing={editing} setEditing={setEditing} editingVal={editingVal} setEditingVal={setEditingVal} onSave={() => handleSaveCore("safetyInfoUrl")} />
+          <CoreLinkCard id="checklistUrl" shipId={ship.id} title="출항 전 점검표" url={ship.checklistUrl} icon="clipboard" color="navy" editing={editing} setEditing={setEditing} editingVal={editingVal} setEditingVal={setEditingVal} onSave={() => handleSaveCore("checklistUrl")} />
+          <CoreLinkCard id="regulationsUrl" shipId={ship.id} title="운항관리규정" url={ship.regulationsUrl} icon="book" color="blue" editing={editing} setEditing={setEditing} editingVal={editingVal} setEditingVal={setEditingVal} onSave={() => handleSaveCore("regulationsUrl")} />
+          <CoreLinkCard id="safetyInfoUrl" shipId={ship.id} title="여객선 안전정보" url={ship.safetyInfoUrl} icon="anchor" color="teal" editing={editing} setEditing={setEditing} editingVal={editingVal} setEditingVal={setEditingVal} onSave={() => handleSaveCore("safetyInfoUrl")} />
           
           <div className={styles.linkCard} style={{ border: '1px solid #e2e8f0', background: '#f8fafc' }}>
             <div className={styles.linkLeft}>
@@ -849,17 +850,59 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
   );
 }
 
-function CoreLinkCard({ id, title, url, icon, color, editing, setEditing, editingVal, setEditingVal, onSave }: any) {
+function CoreLinkCard({ id, shipId, title, url, icon, color, editing, setEditing, editingVal, setEditingVal, onSave }: any) {
   const isEditing = editing === id;
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 45 * 1024 * 1024) {
+      alert("파일 크기는 최대 45MB까지만 업로드할 수 있습니다.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${id}_${Date.now()}.${fileExt}`;
+      const filePath = `${shipId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      setEditingVal(publicUrl);
+      alert(`[${file.name}] 파일이 성공적으로 업로드되었습니다!\n우측의 [저장] 버튼을 누르면 설정이 저장됩니다.`);
+    } catch (err) {
+      console.error(err);
+      alert("파일 업로드 중 오류가 발생했습니다. Supabase Storage 환경 설정을 확인해 주세요.\n오류 내용: " + (err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className={styles.linkCard}>
       <div className={styles.linkLeft}>
          <div className={`${styles.linkIconBox} ${styles[color]}`}><LinkIcon size={24} /></div>
-         <div className={styles.linkInfo}>
+         <div className={styles.linkInfo} style={{ width: '100%' }}>
            <h4>{title}</h4>
            {!isEditing && (
              <>
-               <p>{url || '연결된 주소가 없습니다.'}</p>
+               <p style={{ wordBreak: 'break-all' }}>{url || '연결된 주소가 없습니다.'}</p>
                <div className={styles.badges}>
                  <span className={`${styles.badge} ${styles.primary}`}>주요</span>
                  {url && <span className={`${styles.badge} ${styles.active}`}>활성</span>}
@@ -867,11 +910,54 @@ function CoreLinkCard({ id, title, url, icon, color, editing, setEditing, editin
              </>
            )}
            {isEditing && (
-             <div className={styles.editInline}>
-               <input type="text" className={styles.editInput} autoFocus defaultValue={url||''} onChange={(e:any)=>setEditingVal(e.target.value)} placeholder="URL 입력" />
-               <div style={{display:'flex',gap:'0.5rem'}}>
-                 <button className={styles.editSave} onClick={onSave}>저장</button>
-                 <button className={`${styles.actionBtn}`} onClick={()=>setEditing(null)}>취소</button>
+             <div className={styles.editInline} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+               <input 
+                 type="text" 
+                 className={styles.editInput} 
+                 autoFocus 
+                 value={editingVal || ''} 
+                 onChange={(e:any)=>setEditingVal(e.target.value)} 
+                 placeholder="URL 입력 또는 우측 파일 업로드" 
+                 style={{ width: '100%', padding: '0.5rem' }} 
+               />
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                 <label style={{
+                   display: 'inline-flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   padding: '0.4rem 0.8rem',
+                   background: uploading ? '#cbd5e1' : '#0ea5e9',
+                   color: '#fff',
+                   borderRadius: '8px',
+                   fontSize: '0.8rem',
+                   fontWeight: 700,
+                   cursor: uploading ? 'not-allowed' : 'pointer',
+                   border: 'none',
+                   transition: 'all 0.2s'
+                 }}>
+                   {uploading ? '업로드 중...' : '📂 파일 첨부 (PDF/이미지 등)'}
+                   <input 
+                     type="file" 
+                     accept=".pdf,.jpg,.jpeg,.png,.hwp,.hwpx,.gif" 
+                     onChange={handleFileUpload} 
+                     disabled={uploading}
+                     style={{ display: 'none' }} 
+                   />
+                 </label>
+                 {url && (
+                   <a 
+                     href={url} 
+                     target="_blank" 
+                     rel="noopener noreferrer" 
+                     style={{ fontSize: '0.8rem', color: '#64748b', textDecoration: 'underline', fontWeight: 800 }}
+                   >
+                     기존 파일 보기
+                   </a>
+                 )}
+               </div>
+               <div style={{display:'flex', gap:'0.5rem', marginTop: '0.3rem'}}>
+                 <button className={styles.editSave} onClick={onSave} disabled={uploading}>저장</button>
+                 <button className={`${styles.actionBtn}`} onClick={()=>setEditing(null)} disabled={uploading}>취소</button>
                </div>
              </div>
            )}
