@@ -518,3 +518,272 @@ export function ActionButton({
     </>
   );
 }
+
+// 🚢 여객 만족도 설문조사 바텀 시트 팝업 위젯
+export function SurveyPopup({ shipName, shipId }: { shipName: string; shipId: string }) {
+  const [mounted, setMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [satisfaction, setSatisfaction] = useState<number | null>(null);
+  const [helpful, setHelpful] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const labels = ["", "많이 아쉬워요", "조금 아쉬워요", "보통이에요", "만족해요", "매우 만족해요"];
+
+  useEffect(() => {
+    setMounted(true);
+    const key = "ksvy_seen_until";
+    const hideUntil = localStorage.getItem(key);
+    const isSnoozed = hideUntil && Date.now() < parseInt(hideUntil, 10);
+
+    if (!isSnoozed) {
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+      }, 4000); // 4초 뒤 노출
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const snooze = () => {
+    try {
+      const key = "ksvy_seen_until";
+      const snoozeTime = Date.now() + 24 * 3600e3; // 24시간
+      localStorage.setItem(key, snoozeTime.toString());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const closePopup = () => {
+    setIsOpen(false);
+  };
+
+  const handleSkip = () => {
+    snooze();
+    closePopup();
+  };
+
+  const handleSubmit = async () => {
+    if (!satisfaction) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    const payload = {
+      satisfaction,
+      helpful,
+      comment: comment.trim() || null,
+      ship: shipName || null,
+      easy_to_find: null,
+      checked: null
+    };
+
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('passenger_survey')
+        .insert([payload]);
+
+      if (error) throw error;
+
+      snooze();
+      setIsSuccess(true);
+      setTimeout(closePopup, 1900);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg("제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <>
+      {/* 백드롭 */}
+      <div 
+        className={`ksvy-back ${isOpen ? 'show' : ''}`}
+        onClick={handleSkip}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(16,42,58,.45)', zIndex: 9998,
+          opacity: isOpen ? 1 : 0, pointerEvents: isOpen ? 'auto' : 'none',
+          transition: 'opacity .25s', backdropFilter: 'blur(2px)'
+        }}
+      />
+
+      {/* 바텀 시트 */}
+      <div 
+        className={`ksvy ${isOpen ? 'show' : ''}`}
+        role="dialog" aria-modal="true"
+        style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: '#fff', borderRadius: '22px 22px 0 0',
+          boxShadow: '0 -10px 40px rgba(16,42,58,.25)',
+          maxWidth: '480px', margin: '0 auto', padding: '8px 20px 22px',
+          transform: isOpen ? 'translateY(0)' : 'translateY(110%)',
+          transition: 'transform .32s cubic-bezier(.2,.9,.3,1)',
+          fontFamily: "'Pretendard',-apple-system,'Malgun Gothic',sans-serif",
+          color: '#102a3a'
+        }}
+      >
+        <div style={{ width: '42px', height: '5px', borderRadius: '3px', background: '#d7e2ea', margin: '8px auto 12px' }} />
+        <button 
+          onClick={handleSkip} 
+          aria-label="닫기"
+          style={{
+            position: 'absolute', top: '14px', right: '16px', border: 'none', background: '#f1f6f9',
+            width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', color: '#5b7081',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+        >
+          ✕
+        </button>
+
+        {isSuccess ? (
+          <div style={{ textAlign: 'center', padding: '16px 0 8px' }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: 'linear-gradient(135deg,#2e9e6b,#26b07a)', color: '#fff',
+              fontSize: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 14px', animation: 'ksvyPop .45s cubic-bezier(.2,1.3,.5,1)'
+            }}>
+              ✓
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 800 }}>감사합니다!</h3>
+            <p style={{ color: '#5b7081', fontSize: '14px', margin: '6px 0 0' }}>
+              여러분의 의견이 더 안전한 바닷길을 만듭니다.
+            </p>
+          </div>
+        ) : (
+          <div className="ksvy-body">
+            <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '2px 0 4px', letterSpacing: '-.02em' }}>
+              서비스가 도움이 되셨나요?
+            </h3>
+            <p style={{ fontSize: '13.5px', color: '#5b7081', margin: '0 0 16px' }}>
+              {shipName && <span style={{ color: '#1f7a8c', fontWeight: 700 }}>{shipName}</span>} 이용 고객님, 잠깐이면 됩니다. 익명으로 처리됩니다.
+            </p>
+
+            {/* 별점 */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', margin: '4px 0 6px' }}>
+              {[1, 2, 3, 4, 5].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => setSatisfaction(val)}
+                  style={{
+                    border: 'none', background: 'none', fontSize: '42px',
+                    color: satisfaction && val <= satisfaction ? '#f6a609' : '#cdd9e1',
+                    cursor: 'pointer', padding: '2px', transition: 'transform .12s, color .12s'
+                  }}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#5b7081', minHeight: '20px', marginBottom: '6px', textAlign: 'center' }}>
+              {satisfaction ? labels[satisfaction] : "별을 눌러 평가해 주세요"}
+            </div>
+
+            {/* 별점을 누르면 열리는 추가 문항 */}
+            <div 
+              style={{
+                maxHeight: satisfaction ? '260px' : '0',
+                opacity: satisfaction ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'max-height .35s ease, opacity .35s ease'
+              }}
+            >
+              <div style={{ fontSize: '14.5px', fontWeight: 700, margin: '14px 0 8px' }}>
+                필요한 안전정보를 쉽게 확인하셨나요?
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { key: 'yes', label: '네, 쉬웠어요' },
+                  { key: 'ok', label: '보통이에요' },
+                  { key: 'no', label: '아쉬웠어요' }
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setHelpful(item.key)}
+                    style={{
+                      flex: 1, padding: '11px 4px', border: '1.5px solid #dbe6ed',
+                      borderRadius: '12px', fontSize: '14px', fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit', minHeight: '46px',
+                      background: helpful === item.key ? '#1f7a8c' : '#fff',
+                      color: helpful === item.key ? '#fff' : '#5b7081',
+                      borderColor: helpful === item.key ? '#1f7a8c' : '#dbe6ed',
+                      transition: '.14s'
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                maxLength={500}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="개선 의견이 있다면 남겨주세요 (선택)"
+                style={{
+                  width: '100%', marginTop: '12px', border: '1.5px solid #dbe6ed',
+                  borderRadius: '12px', padding: '11px', fontFamily: 'inherit',
+                  fontSize: '14.5px', resize: 'none', height: '64px',
+                  color: '#102a3a', boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {errorMsg && (
+              <div style={{
+                background: '#fdecec', color: '#b23b2a', border: '1px solid #f3c4bd',
+                borderRadius: '10px', padding: '9px 12px', fontSize: '13px',
+                marginTop: '10px', fontWeight: 600
+              }}>
+                {errorMsg}
+              </div>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={!satisfaction || submitting}
+              style={{
+                width: '100%', marginTop: '16px', border: 'none', borderRadius: '14px',
+                padding: '15px', fontSize: '17px', fontWeight: 800, color: '#fff',
+                background: 'linear-gradient(135deg,#143b5e,#1f7a8c)',
+                cursor: !satisfaction || submitting ? 'not-allowed' : 'pointer',
+                opacity: !satisfaction || submitting ? 0.45 : 1,
+                fontFamily: 'inherit', transition: '.14s'
+              }}
+            >
+              {submitting ? "제출 중…" : "제출하기"}
+            </button>
+
+            <button 
+              onClick={handleSkip}
+              style={{
+                display: 'block', width: '100%', marginTop: '10px', border: 'none',
+                background: 'none', color: '#9aa9b4', fontSize: '13px',
+                cursor: 'pointer', fontFamily: 'inherit', padding: '6px'
+              }}
+            >
+              다음에 할게요 · 오늘 그만 보기
+            </button>
+
+            <p style={{ textAlign: 'center', fontSize: '11.5px', color: '#9aa9b4', marginTop: '12px', lineHeight: 1.5 }}>
+              개인을 식별할 수 있는 정보는 수집하지 않습니다.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes ksvyPop {
+          0% { transform: scale(0); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
+    </>
+  );
+}

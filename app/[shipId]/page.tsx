@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '../lib/db';
 import styles from './page.module.css';
-import { Tracker, ActionButton, FavoriteButton, NoticePopup } from './ClientInteractions';
+import { Tracker, ActionButton, FavoriteButton, NoticePopup, SurveyPopup } from './ClientInteractions';
 import { BandStatusButton } from './BandStatusButton';
 import { ShieldCheck, Activity, MapPin, Zap, CheckSquare, Navigation, ShieldAlert } from 'lucide-react';
 import { fetchShipSchedule, getStatusInfo, formatTime, formatDate } from '../lib/komsa';
@@ -97,6 +97,7 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
   return (
     <div className={styles.container}>
       <NoticePopup message={config?.tomorrowWeather} announcements={announcements} />
+      <SurveyPopup shipName={ship.name} shipId={ship.id} />
       <Tracker shipId={ship.id} />
       
       <header className={styles.header} style={{ 
