@@ -44,7 +44,7 @@
   margin-bottom: 0;
   padding: 1rem 1rem 0.5rem 1rem;
   position: relative;
-  z-index: 2;
+  z-index: 50;
   animation: fadeInDown 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

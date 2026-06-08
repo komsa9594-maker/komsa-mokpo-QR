@@ -104,6 +104,8 @@ export function LanguageSwitcher() {
           top: '115%',
           right: 0,
           width: '160px',
+          maxHeight: '300px',
+          overflowY: 'auto',
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
