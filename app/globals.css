@@ -52,3 +52,37 @@ a {
 button, input {
   font-family: inherit;
 }
+
+/* 🌐 구글 번역기 기본 UI 완벽하게 숨기기 및 레이아웃 보호 */
+body {
+  top: 0px !important; /* 상단 여백 강제 추가 방지 */
+  position: static !important;
+}
+
+/* 상단 회색 프레임 배너 숨김 */
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+
+/* 원본 텍스트 말풍선(툴팁) 숨김 */
+#goog-gt-tt {
+  display: none !important;
+}
+.goog-tooltip {
+  display: none !important;
+}
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+/* 번역 중인 텍스트 하이라이트 효과 제거 */
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+}
+
+/* 기본 번역 드롭다운 위젯 숨김 */
+#google_translate_element {
+  display: none !important;
+}

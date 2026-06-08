@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '../lib/db';
 import styles from './page.module.css';
 import { Tracker, ActionButton, FavoriteButton, NoticePopup, SurveyPopup, TtsButton } from './ClientInteractions';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { BandStatusButton } from './BandStatusButton';
 import { ShieldCheck, Activity, MapPin, Zap, CheckSquare, Navigation, ShieldAlert } from 'lucide-react';
 import { fetchShipSchedule, getStatusInfo, formatTime, formatDate } from '../lib/komsa';
@@ -117,10 +118,16 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
       
       <header className={styles.header} style={{ 
         display: 'flex', flexDirection: 'column', alignItems: 'center', 
-        paddingTop: '1rem', paddingBottom: '0.5rem', gap: '0.4rem' 
+        paddingTop: '1rem', paddingBottom: '0.5rem', gap: '0.4rem',
+        position: 'relative'
       }}>
+        {/* 🌐 다국어 번역 스위처 (우측 상단 배치) */}
+        <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 100 }}>
+          <LanguageSwitcher />
+        </div>
+
         {/* 🏛️ 최상단: 공단 공식 로고 */}
-        <div style={{ marginBottom: '0.4rem' }}>
+        <div style={{ marginBottom: '0.4rem', marginTop: '10px' }}>
           <img
             src="/komsa_official_logo.png"
             alt="공단 로고"
