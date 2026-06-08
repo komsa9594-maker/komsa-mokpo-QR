@@ -1,8 +1,8 @@
 'use client';
 // Vercel Deploy Trigger [2026.03.21.1330]
 
-import React, { useEffect, useState } from 'react';
-import { Anchor, BatteryCharging, BookOpen, Bus, CalendarClock, CheckSquare, ChevronRight, ClipboardCheck, ExternalLink, Glasses, Heart, Info, MapPin, Navigation, Zap } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Anchor, BatteryCharging, BookOpen, Bus, CalendarClock, CheckSquare, ChevronRight, ClipboardCheck, ExternalLink, Glasses, Heart, Info, MapPin, Navigation, Volume2, VolumeX, Zap } from 'lucide-react';
 import styles from './page.module.css';
 
 export function NoticePopup({ message, announcements = [] }: { message?: string | null; announcements?: any[] }) {
@@ -785,5 +785,117 @@ export function SurveyPopup({ shipName, shipId }: { shipName: string; shipId: st
         }
       `}</style>
     </>
+  );
+}
+
+// 🔊 교통약자를 위한 TTS(음성 안내) 버튼
+export function TtsButton({ ttsData }: { ttsData: {
+  shipName: string;
+  statusLabel: string;
+  schedules: { time: string; from: string; to: string; status: string }[];
+} }) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [supported, setSupported] = useState(true);
+  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      setSupported(false);
+    }
+    return () => {
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  const buildScript = useCallback(() => {
+    const lines: string[] = [];
+    lines.push(`안녕하세요. ${ttsData.shipName} 여객선 안전정보 페이지입니다.`);
+    lines.push(`현재 운항 상태는 ${ttsData.statusLabel} 입니다.`);
+
+    if (ttsData.schedules && ttsData.schedules.length > 0) {
+      lines.push(`오늘의 운항 스케줄을 안내해 드리겠습니다.`);
+      ttsData.schedules.forEach((s, i) => {
+        lines.push(`${i + 1}번째 항차. ${s.time} 출발. ${s.from}에서 ${s.to}행. 상태는 ${s.status} 입니다.`);
+      });
+    } else {
+      lines.push(`현재 등록된 운항 스케줄 정보가 없습니다.`);
+    }
+
+    lines.push(`이 페이지에서는 출항 전 점검표 확인, 운항관리규정 열람, 여객선 안전정보 조회 등의 메뉴를 이용하실 수 있습니다.`);
+    lines.push(`안전한 바닷길, 한국해양교통안전공단이 함께합니다.`);
+
+    return lines.join(' ');
+  }, [ttsData]);
+
+  const handleToggle = () => {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+
+    if (isSpeaking) {
+      synth.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const text = buildScript();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ko-KR';
+    utter.rate = 0.95;
+    utter.pitch = 1.0;
+
+    // 한국어 음성 선택
+    const voices = synth.getVoices();
+    const koVoice = voices.find(v => v.lang.startsWith('ko'));
+    if (koVoice) utter.voice = koVoice;
+
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+
+    utterRef.current = utter;
+    synth.cancel();
+    synth.speak(utter);
+    setIsSpeaking(true);
+  };
+
+  if (!supported) return null;
+
+  return (
+    <button
+      onClick={handleToggle}
+      aria-label={isSpeaking ? "음성 안내 정지" : "음성 안내 듣기"}
+      title={isSpeaking ? "음성 안내 정지" : "교통약자를 위한 음성 안내"}
+      style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '20px',
+        zIndex: 9990,
+        width: '56px',
+        height: '56px',
+        borderRadius: '50%',
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: isSpeaking
+          ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+          : 'linear-gradient(135deg, #0284c7, #0369a1)',
+        color: '#ffffff',
+        boxShadow: isSpeaking
+          ? '0 6px 24px rgba(239, 68, 68, 0.5)'
+          : '0 6px 24px rgba(2, 132, 199, 0.45)',
+        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        animation: isSpeaking ? 'ttsPulse 1.5s infinite' : 'none'
+      }}
+    >
+      {isSpeaking ? <VolumeX size={26} strokeWidth={2.5} /> : <Volume2 size={26} strokeWidth={2.5} />}
+
+      <style>{`
+        @keyframes ttsPulse {
+          0%, 100% { box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5); }
+          50% { box-shadow: 0 6px 32px rgba(239, 68, 68, 0.8), 0 0 0 8px rgba(239, 68, 68, 0.15); }
+        }
+      `}</style>
+    </button>
   );
 }

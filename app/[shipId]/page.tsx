@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '../lib/db';
 import styles from './page.module.css';
-import { Tracker, ActionButton, FavoriteButton, NoticePopup, SurveyPopup } from './ClientInteractions';
+import { Tracker, ActionButton, FavoriteButton, NoticePopup, SurveyPopup, TtsButton } from './ClientInteractions';
 import { BandStatusButton } from './BandStatusButton';
 import { ShieldCheck, Activity, MapPin, Zap, CheckSquare, Navigation, ShieldAlert } from 'lucide-react';
 import { fetchShipSchedule, getStatusInfo, formatTime, formatDate } from '../lib/komsa';
@@ -94,10 +94,25 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
   const { fetchSeaWeather } = await import('../lib/weather');
   const weather = await fetchSeaWeather(ship.weatherRegId || '12A30100');
 
+  // 🔊 TTS 데이터 준비
+  const ttsSchedules = (schedules || []).map((s: any) => ({
+    time: formatTime(s.sail_tm),
+    from: s.oport_nm || '',
+    to: s.dest_nm || '',
+    status: (s.nvg_stts_nm || s.nvg_se_nm || '정상')
+  }));
+
+  const ttsData = {
+    shipName: ship.name,
+    statusLabel: statusInfo.label,
+    schedules: ttsSchedules
+  };
+
   return (
     <div className={styles.container}>
       <NoticePopup message={config?.tomorrowWeather} announcements={announcements} />
       <SurveyPopup shipName={ship.name} shipId={ship.id} />
+      <TtsButton ttsData={ttsData} />
       <Tracker shipId={ship.id} />
       
       <header className={styles.header} style={{ 
