@@ -70,3 +70,15 @@ model Announcement {
   updatedAt   DateTime @updatedAt
 }
 
+model PassengerSurvey {
+  id           Int      @id @default(autoincrement())
+  satisfaction Int
+  helpful      String?
+  comment      String?
+  ship         String?
+  easy_to_find String?
+  checked      String?
+  createdAt    DateTime @default(now())
+
+  @@map("passenger_survey")
+}

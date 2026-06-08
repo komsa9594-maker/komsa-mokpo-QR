@@ -6,7 +6,7 @@ import { Search, Ship as ShipIcon, ChevronRight, LayoutDashboard, PlusCircle, Me
 import ShipDashboard from './ShipDashboard';
 import { addShip, deleteShip } from './actions';
 
-export default function AdminDashboard({ ships, config, allClickEvents, announcements, urlOrigin }: any) {
+export default function AdminDashboard({ ships, config, allClickEvents, announcements, surveys, urlOrigin }: any) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedShipId, setSelectedShipId] = useState<string | null>('global'); // Default to global stats
   const [isAddingShip, setIsAddingShip] = useState(false);
@@ -261,6 +261,7 @@ export default function AdminDashboard({ ships, config, allClickEvents, announce
                 config={config} 
                 overallStats={selectedStats} 
                 announcements={announcements}
+                surveys={surveys}
                 allShips={ships}
                 urlOrigin={urlOrigin} 
                 isGlobal={true}
@@ -276,6 +277,7 @@ export default function AdminDashboard({ ships, config, allClickEvents, announce
                 config={config} 
                 overallStats={selectedStats} 
                 announcements={announcements}
+                surveys={surveys}
                 allShips={ships}
                 urlOrigin={urlOrigin} 
                 onBack={() => setSelectedShipId('global')}

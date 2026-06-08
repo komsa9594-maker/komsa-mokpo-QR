@@ -3,7 +3,7 @@ import styles from './admin.module.css';
 import { 
   Copy, Link as LinkIcon, BarChart2, Edit2, Trash2, Calendar, User, Users, 
   CalendarDays, Settings, Star, ExternalLink, Activity, Target, PlusCircle, 
-  Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle, Bell
+  Ship as ShipIcon, ChevronRight, Heart, AlertCircle, RotateCcw, CheckCircle, Bell, MessageSquare
 } from 'lucide-react';
 import { 
   updateCoreLink, updateWeather, deleteCustomLink, addCustomLink, 
@@ -12,7 +12,7 @@ import {
 } from './actions';
 import { supabase } from '../lib/supabase';
 
-export default function ShipDashboard({ ship, config, overallStats, announcements = [], allShips = [], urlOrigin, isGlobal = false }: any) {
+export default function ShipDashboard({ ship, config, overallStats, announcements = [], surveys = [], allShips = [], urlOrigin, isGlobal = false }: any) {
   const [tab, setTab] = useState(isGlobal ? 'stats' : 'links');
   const [editing, setEditing] = useState<string | null>(null);
   const [editingVal, setEditingVal] = useState('');
@@ -118,6 +118,9 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
         )}
         <button className={`${styles.tab} ${tab === 'stats' ? styles.active : ''}`} onClick={() => { setTab('stats'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
           <Activity size={18} /> {isGlobal ? '종합 통계 현황 (실시간)' : '방문자 통계'}
+        </button>
+        <button className={`${styles.tab} ${tab === 'surveys' ? styles.active : ''}`} onClick={() => { setTab('surveys'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+          <MessageSquare size={18} /> 설문 결과
         </button>
       </div>
 
@@ -844,6 +847,102 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
                )})}
              </div>
           </div>
+        </div>
+      )}
+
+      {tab === 'surveys' && (
+        <div style={{ animation: 'fadeIn 0.3s' }}>
+          {(() => {
+            const filteredSurveys = isGlobal 
+              ? surveys 
+              : surveys.filter((s: any) => s.ship === ship.name);
+            
+            const total = filteredSurveys.length;
+            const avgSatisfaction = total > 0 
+              ? (filteredSurveys.reduce((acc: number, s: any) => acc + s.satisfaction, 0) / total).toFixed(1)
+              : '0.0';
+
+            const helpfulYes = filteredSurveys.filter((s: any) => s.helpful === 'yes').length;
+            const helpfulOk = filteredSurveys.filter((s: any) => s.helpful === 'ok').length;
+            const helpfulNo = filteredSurveys.filter((s: any) => s.helpful === 'no').length;
+
+            return (
+              <>
+                <div className={styles.statGrid} style={{ marginBottom: '2rem' }}>
+                  <div className={styles.statCard}>
+                    <div className={`${styles.statIcon} ${styles.blue}`} style={{ background: '#f59e0b', color: '#fff' }}><Star size={20} fill="#fff" /></div>
+                    <div className={styles.statNum} style={{ color: '#d97706' }}>{avgSatisfaction} <span style={{ fontSize: '1rem', color: '#94a3b8' }}>/ 5.0</span></div>
+                    <div className={styles.statLabel}>평균 만족도 별점</div>
+                  </div>
+                  <div className={styles.statCard}>
+                    <div className={`${styles.statIcon} ${styles.green}`}><MessageSquare size={20} /></div>
+                    <div className={styles.statNum}>{total}</div>
+                    <div className={styles.statLabel}>총 응답 수</div>
+                  </div>
+                </div>
+
+                <div className={styles.chartCard} style={{ marginBottom: '2rem' }}>
+                  <div className={styles.chartHeader}><Target size={18} /> 여객선 안전정보 확인 난이도 체감</div>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '100px', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1.2rem', borderRadius: '12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#16a34a' }}>{helpfulYes}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#15803d', fontWeight: 700, marginTop: '0.3rem' }}>쉬웠어요 (긍정)</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: '100px', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '1.2rem', borderRadius: '12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b' }}>{helpfulOk}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 700, marginTop: '0.3rem' }}>보통이에요 (중립)</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: '100px', background: '#fef2f2', border: '1px solid #fecaca', padding: '1.2rem', borderRadius: '12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ef4444' }}>{helpfulNo}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#b91c1c', fontWeight: 700, marginTop: '0.3rem' }}>아쉬웠어요 (부정)</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitle}><MessageSquare size={18} color="#0ea5e9" /> 최근 접수된 상세 의견</div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                  {filteredSurveys.length > 0 ? (
+                    filteredSurveys.map((s: any) => (
+                      <div key={s.id} className={styles.linkCard} style={{ background: '#fff', borderLeft: '4px solid #0ea5e9', display: 'block', padding: '1.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.8rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ color: '#f59e0b', fontSize: '1.1rem', letterSpacing: '2px' }}>
+                              {'★'.repeat(s.satisfaction)}{'☆'.repeat(5 - s.satisfaction)}
+                            </span>
+                            {isGlobal && s.ship && <span className={`${styles.badge}`} style={{ background: '#334155', color: '#fff' }}>{s.ship}</span>}
+                            <span className={`${styles.badge}`} style={{ 
+                              background: s.helpful === 'yes' ? '#10b981' : (s.helpful === 'no' ? '#ef4444' : '#94a3b8'), color: '#fff', fontWeight: 800
+                            }}>
+                              {s.helpful === 'yes' ? '정보 찾기 쉬움' : (s.helpful === 'no' ? '정보 찾기 어려움' : '보통')}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
+                            {new Date(s.createdAt).toLocaleString('ko-KR')}
+                          </span>
+                        </div>
+                        {s.comment ? (
+                          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                            {s.comment}
+                          </div>
+                        ) : (
+                          <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                            (남긴 의견이 없습니다)
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '3rem 2rem', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#64748b' }}>
+                      접수된 설문조사 결과가 없습니다.
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

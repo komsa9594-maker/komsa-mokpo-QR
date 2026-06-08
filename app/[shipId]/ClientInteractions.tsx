@@ -534,7 +534,7 @@ export function SurveyPopup({ shipName, shipId }: { shipName: string; shipId: st
 
   useEffect(() => {
     setMounted(true);
-    const key = "ksvy_seen_until";
+    const key = "ksvy_seen_until_v2";
     const hideUntil = localStorage.getItem(key);
     const isSnoozed = hideUntil && Date.now() < parseInt(hideUntil, 10);
 
@@ -548,7 +548,7 @@ export function SurveyPopup({ shipName, shipId }: { shipName: string; shipId: st
 
   const snooze = () => {
     try {
-      const key = "ksvy_seen_until";
+      const key = "ksvy_seen_until_v2";
       const snoozeTime = Date.now() + 24 * 3600e3; // 24시간
       localStorage.setItem(key, snoozeTime.toString());
     } catch (e) {
