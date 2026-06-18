@@ -91,6 +91,26 @@ export default function AdminDashboard({ ships, config, allClickEvents, announce
     
     const maxVisit = Math.max(...chart.map(c=>c.count), 1);
 
+    // 📅 전체 기간 일자별 방문 현황 (fullHistory)
+    const fullHistoryMap: Record<string, number> = {};
+    shipList.forEach((ship: any) => {
+      ship.visits.forEach((v: any) => {
+        const kst = new Date(v.createdAt.getTime() + 9 * 60 * 60 * 1000);
+        const dp = kst.toISOString().split('T')[0];
+        fullHistoryMap[dp] = (fullHistoryMap[dp] || 0) + 1;
+      });
+    });
+
+    const fullHistory = Object.keys(fullHistoryMap)
+      .sort((a, b) => b.localeCompare(a)) // 최신 날짜가 위로 오도록 내림차순 정렬
+      .map(k => ({
+        fullDate: k,
+        date: k.slice(5).replace('-', '/'),
+        count: fullHistoryMap[k]
+      }));
+
+    const maxHistoryVisit = fullHistory.length > 0 ? Math.max(...fullHistory.map(h => h.count)) : 1;
+
     // Click Statistics
     const shipIds = new Set(shipList.map(s => s.id));
     const filteredClicks = allClickEvents.filter((c: any) => shipIds.has(c.shipId));
@@ -127,7 +147,7 @@ export default function AdminDashboard({ ships, config, allClickEvents, announce
 
     return {
       today: todayCount, yesterday: yesterdayCount, week: weekCount, total: totalAccumulated, maxVisit,
-      chart, totalClicks, maxClick, rank, shipRank, totalFavorites, shipFavoriteRank
+      chart, fullHistory, maxHistoryVisit, totalClicks, maxClick, rank, shipRank, totalFavorites, shipFavoriteRank
     };
   };
 

@@ -776,6 +776,30 @@ export default function ShipDashboard({ ship, config, overallStats, announcement
              </div>
           </div>
 
+          <div className={styles.chartCard} style={{ marginBottom: '1.5rem', maxHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+             <div className={styles.chartHeader}><Calendar size={18} color="#0ea5e9"/> 📅 전체 기간 일자별 방문 상세 내역</div>
+             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+               <div className={styles.rankList}>
+                 {overallStats.fullHistory?.map((h:any, i:number) => (
+                   <div className={styles.rankItem} key={i} style={{ padding: '0.8rem 1rem' }}>
+                     <div style={{ width: '80px', fontWeight: 800, color: '#475569', fontSize: '0.9rem' }}>{h.date}</div>
+                     <div className={styles.rankInfo} style={{ marginLeft: '1rem' }}>
+                        <div className={styles.rankTitle} style={{ fontSize: '0.95rem' }}>
+                           방문 횟수 <span className={styles.rankNum} style={{color: '#0ea5e9'}}>{h.count}회</span>
+                        </div>
+                        <div className={styles.progressTrack}>
+                           <div className={styles.progressFill} style={{width: `${Math.max((h.count/(overallStats.maxHistoryVisit||1))*100, 2)}%`, background: '#0ea5e9'}}></div>
+                        </div>
+                     </div>
+                   </div>
+                 ))}
+                 {(!overallStats.fullHistory || overallStats.fullHistory.length === 0) && (
+                   <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>방문 기록이 없습니다.</p>
+                 )}
+               </div>
+             </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: isGlobal ? '1fr 1fr' : '1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             {isGlobal && overallStats.shipFavoriteRank && (
               <div className={styles.chartCard} style={{ borderTop: '4px solid #ff4d4d' }}>
