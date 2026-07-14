@@ -272,6 +272,19 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
            <img src="/komat_like.jpg" alt="최고 공단 캐릭터" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #00d4ff', marginLeft: 'auto' }} />
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          {/* 📄 운항증명서 발급하기 (모든 선박 공통 최상단 배치) */}
+          <ActionButton 
+            shipId={ship.id} 
+            linkId="global_cert" 
+            url="https://www.komsa.or.kr/prog/crtfctSailing/kor/sub03_0206/list.do?searchJbcd=F" 
+            title="운항증명서 발급하기" 
+            description="여객선 승선 사실을 증명할 수 있는 운항증명서를 쉽고 빠르게 발급받으세요."
+            guideText="발급하기"
+            iconName="📜" 
+            primary={true} 
+          />
+
           {ship.links
             .filter((link: any) => {
               if (link.url === 'tracking-only') return false;
