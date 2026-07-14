@@ -279,7 +279,7 @@ export default async function ShipPage({ params }: { params: Promise<{ shipId: s
             linkId="global_cert" 
             url="https://www.komsa.or.kr/prog/crtfctSailing/kor/sub03_0206/list.do?searchJbcd=F" 
             title="운항증명서 발급하기" 
-            description="여객선 승선 사실을 증명할 수 있는 운항증명서를 쉽고 빠르게 발급받으세요."
+            description="여객선의 운항과 결항 사실을 증빙할 수 있는 문서를 쉽고 빠르게 발급받으세요."
             guideText="발급하기"
             iconName="📜" 
             primary={true} 
